@@ -1,0 +1,12 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "Pets",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "author", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "TimeStamp", "order": "DESCENDING" }
+      ]
+    }
+  ]
+}

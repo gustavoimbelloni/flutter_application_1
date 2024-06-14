@@ -1,0 +1,29 @@
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "sos-pets-7f1eb",
+          "appId": "1:654183373660:android:da263089b3d82413793f99",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "sos-pets-7f1eb",
+          "configurations": {
+            "android": "1:654183373660:android:da263089b3d82413793f99",
+            "ios": "1:654183373660:ios:87c983a6793e564e793f99",
+            "macos": "1:654183373660:ios:87c983a6793e564e793f99",
+            "web": "1:654183373660:web:aa8b68fe3dbf0e34793f99",
+            "windows": "1:654183373660:web:891b4ff239d18e05793f99"
+          }
+        }
+      }
+    }
+  },
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  }
+}
