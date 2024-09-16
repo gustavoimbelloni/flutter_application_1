@@ -42,6 +42,7 @@ dependencies:
   firebase_storage: ^11.0.6
   geolocator: ^9.0.2
   http: ^0.13.3
+  google_sign_in: ^6.2.1
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -61,6 +62,7 @@ flutter:
   assets:
     - assets/pet_background.jpg
     - assets/pet_logo.png
+    - assets/google_logo.png
     
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in

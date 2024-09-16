@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_application_1/auth/auth.dart';
+import 'package:flutter_application_1/pages/home_page.dart';
 import 'package:flutter_application_1/theme/dark_theme.dart';
 import 'package:flutter_application_1/theme/light_theme.dart';
 import 'firebase_options.dart';
@@ -22,7 +23,12 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: lightTheme,
       darkTheme: darkTheme,
-      home: const AuthPage(),
+      // Definindo as rotas da aplicação
+      initialRoute: '/',
+      routes: {
+        '/': (context) => const AuthPage(), //Pagina inicial de autenticação
+        '/home_page': (context) => HomePage(), // Rota para a HomePage
+      },
     );
   }
 }

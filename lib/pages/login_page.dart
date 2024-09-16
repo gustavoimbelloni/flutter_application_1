@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_application_1/componentes/button.dart';
 import 'package:flutter_application_1/componentes/text_field.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 class LoginPage extends StatefulWidget {
   final Function()? onTap;
@@ -51,6 +52,44 @@ class _LoginPageState extends State<LoginPage> {
         title: Text(message),
       ),
     );
+  }
+
+  Future<void> signInWithGoogle() async {
+    try {
+      // Mostra circulo de carregamento
+      showDialog(
+        context: context,
+        builder: (context) => const Center(child: CircularProgressIndicator()),
+      );
+
+      // Instancia do GoogleSignIn
+      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+      if (googleUser == null) {
+        // Fechar dialogo se o usuario cancelar o login
+        Navigator.pop(context);
+        return;
+      }
+
+      // Autenticação no Firebase
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      // Login no Firebase com o token do Google
+      await FirebaseAuth.instance.signInWithCredential(credential);
+
+      // Fechar o circulo de carregamento
+      if (context.mounted) Navigator.pop(context);
+
+      // Redirecionar para a pagina inicial apos o login bem-sucedido
+      Navigator.pushReplacementNamed(context, '/home_page');
+    } on FirebaseAuthException catch (e) {
+      Navigator.pop(context);
+      displayMessage(e.message ?? "Erro durante o login com Google");
+    }
   }
 
   @override
@@ -108,6 +147,34 @@ class _LoginPageState extends State<LoginPage> {
                 ),
 
                 const SizedBox(height: 25),
+
+                GestureDetector(
+                  onTap:
+                      signInWithGoogle, // Chama o método para login com Google
+                  child: Container(
+                    padding: EdgeInsets.all(15),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(5),
+                      color: Colors.white,
+                      border: Border.all(color: Colors.grey),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Image.asset(
+                          'assets/google_logo.png',
+                          height: 20,
+                        ),
+                        SizedBox(width: 10),
+                        Text(
+                          'Entrar com Google',
+                          style: TextStyle(color: Colors.black),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
 
                 // vai para a página de cadastro
 
