@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_application_1/auth/auth_service.dart';
 import 'package:flutter_application_1/componentes/button.dart';
 import 'package:flutter_application_1/componentes/text_field.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -54,41 +55,28 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
+  // Fazer login com Google
   Future<void> signInWithGoogle() async {
-    try {
-      // Mostra circulo de carregamento
-      showDialog(
-        context: context,
-        builder: (context) => const Center(child: CircularProgressIndicator()),
-      );
+    final authService = AuthService(); // Crie uma instancia do AuthService
 
-      // Instancia do GoogleSignIn
-      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
-      if (googleUser == null) {
-        // Fechar dialogo se o usuario cancelar o login
-        Navigator.pop(context);
-        return;
-      }
+    // Mostra circulo de carregamento
+    showDialog(
+      context: context,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
 
-      // Autenticação no Firebase
-      final GoogleSignInAuthentication googleAuth =
-          await googleUser.authentication;
-      final credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
-      );
+    // Tente o login com Google
+    UserCredential? userCredential = await authService.signInWithGoogle();
 
-      // Login no Firebase com o token do Google
-      await FirebaseAuth.instance.signInWithCredential(credential);
+    // Fechar o circulo de carregamento
+    Navigator.pop(context);
 
-      // Fechar o circulo de carregamento
-      if (context.mounted) Navigator.pop(context);
-
+    if (userCredential != null) {
       // Redirecionar para a pagina inicial apos o login bem-sucedido
       Navigator.pushReplacementNamed(context, '/home_page');
-    } on FirebaseAuthException catch (e) {
-      Navigator.pop(context);
-      displayMessage(e.message ?? "Erro durante o login com Google");
+    } else {
+      // Exibir erro de login
+      displayMessage('Erro ao fazer login com o Google');
     }
   }
 
@@ -148,6 +136,7 @@ class _LoginPageState extends State<LoginPage> {
 
                 const SizedBox(height: 25),
 
+                // Botão de login com Google
                 GestureDetector(
                   onTap:
                       signInWithGoogle, // Chama o método para login com Google

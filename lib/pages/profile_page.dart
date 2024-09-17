@@ -61,7 +61,7 @@ class _ProfilePageState extends State<ProfilePage> {
     );
 
     // atualização no firebase
-    if (newValue.trim().length > 0) {
+    if (newValue.trim().isNotEmpty) {
       // atualize apenas se houver algo no campo de texto
       await usersCollection.doc(currentUser.email).update({field: newValue});
     }
@@ -75,15 +75,21 @@ class _ProfilePageState extends State<ProfilePage> {
         title: const Text("Página de perfil"),
       ),
       body: StreamBuilder<DocumentSnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection("Users")
-            .doc(currentUser.email)
-            .snapshots(),
+        stream: usersCollection.doc(currentUser.email).snapshots(),
         builder: (context, snapshot) {
-          // obter dados do usuário
+          // Verificar se os dados do usuario foram recuperados
           if (snapshot.hasData) {
-            final userData = snapshot.data!.data() as Map<String, dynamic>;
+            final userData = snapshot.data?.data() as Map<String, dynamic>?;
 
+            if (userData == null) {
+              // Se o usuario não for encontrado no Firestore
+              return Center(
+                child: Text(
+                  'Usuario não encontrado no Firestore.',
+                  style: TextStyle(color: Colors.red, fontSize: 18),
+                ),
+              );
+            }
             return ListView(
               children: [
                 const SizedBox(height: 50),
@@ -116,13 +122,13 @@ class _ProfilePageState extends State<ProfilePage> {
 
                 // nome de usuário
                 MyTextBox(
-                  text: userData['username'],
+                  text: userData['username'] ?? 'Sem nome de usuário',
                   sectionName: 'username',
                   onPressed: () => editField('username'),
                 ),
                 // bio
                 MyTextBox(
-                  text: userData['bio'],
+                  text: userData['bio'] ?? 'Sem bio',
                   sectionName: 'bio',
                   onPressed: () => editField('bio'),
                 ),
@@ -140,11 +146,16 @@ class _ProfilePageState extends State<ProfilePage> {
               ],
             );
           } else if (snapshot.hasError) {
+            // Erro ao carregar o perfil
             return Center(
-              child: Text('Error${snapshot.error}'),
+              child: Text(
+                'Erro ao carregar o perfil: ${snapshot.error}',
+                style: TextStyle(color: Colors.red),
+              ),
             );
           }
 
+          // Exibe o circulo de carregamento enquanto aguarda os dados
           return const Center(
             child: CircularProgressIndicator(),
           );
