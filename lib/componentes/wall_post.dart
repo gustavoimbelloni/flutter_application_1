@@ -7,11 +7,13 @@ import 'package:flutter_application_1/componentes/comment_button.dart';
 import 'package:flutter_application_1/componentes/delete_button.dart';
 import 'package:flutter_application_1/componentes/like_button.dart';
 import 'package:flutter_application_1/helper/helper_methods.dart';
+import 'package:flutter_application_1/pages/chat_screen.dart';
 
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 
+// Classe WallPost para exibir uma postagem no mural
 class WallPost extends StatefulWidget {
   final String message;
   final String user;
@@ -27,7 +29,7 @@ class WallPost extends StatefulWidget {
     required this.postId,
     required this.likes,
     required this.time,
-    required this.imageUrl, // Adicione este parâmetro
+    required this.imageUrl,
   });
 
   @override
@@ -36,25 +38,23 @@ class WallPost extends StatefulWidget {
 
 class _WallPostState extends State<WallPost> {
   final ImagePicker _picker = ImagePicker();
-  File? _imageFile;
+  File? _imageFile; // Imagem selecionada pelo usuário
 
-  // Escolher imagem da galeria
+  // Método para escolher imagem da galeria
   Future<void> pickImage() async {
     final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
       setState(() {
         _imageFile = File(pickedFile.path);
       });
-      // Carregar a imagem
-      await uploadImage();
+      await uploadImage(); // Carrega a imagem escolhida
     }
   }
 
-  // Fazer upload da imagem para o Firebase Storage
+  // Método para fazer upload da imagem para o Firebase Storage
   Future<void> uploadImage() async {
     if (_imageFile == null) return;
 
-    // Caminho para salvar a imagem no Firebase Storage
     String filePath = 'post_images/${widget.postId}/${DateTime.now()}.png';
     File file = _imageFile!;
 
@@ -63,7 +63,7 @@ class _WallPostState extends State<WallPost> {
       String downloadURL =
           await FirebaseStorage.instance.ref(filePath).getDownloadURL();
 
-      // Atualizar o Firestore com a URL da imagem
+      // Atualiza o Firestore com a URL da imagem
       await FirebaseFirestore.instance
           .collection('Pets')
           .doc(widget.postId)
@@ -75,45 +75,44 @@ class _WallPostState extends State<WallPost> {
     }
   }
 
-  // usuario
+  // Usuario atual
   final currentUser = FirebaseAuth.instance.currentUser!;
-  bool isLiked = false;
+  bool isLiked = false; // Estado da curtida
 
-  // controlador de texto de comentário
+  // Controlador de texto para comentários
   final _commentTextController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
+    // Verifica se a postagem já foi curtida pelo usuário atual
     isLiked = widget.likes.contains(currentUser.email);
   }
 
-  // alternar curtida
+  // Alternar estado da curtida
   void toggleLike() {
     setState(() {
       isLiked = !isLiked;
     });
 
-    // Acesse o documento pelo Firebase
     DocumentReference postRef =
         FirebaseFirestore.instance.collection('Pets').doc(widget.postId);
 
     if (isLiked) {
-      // se a postagem já tiver sido curtida, adicione o e-mail do usuário ao campo 'Curtir'
+      // Se a postagem foi curtida, adiciona o e-mail do usuário ao campo 'Likes'
       postRef.update({
         'Likes': FieldValue.arrayUnion([currentUser.email])
       });
     } else {
-      // se a postagem não tiver sido curtida, remova o e-mail do usuário do campo 'Curtir'
+      // Se a postagem não foi curtida, remove o e-mail do usuário do campo 'Likes'
       postRef.update({
         'Likes': FieldValue.arrayRemove([currentUser.email])
       });
     }
   }
 
-  // Adicione um comentário
+  // Adicionar um comentário à postagem
   void addComment(String commentText) {
-    // escreva o comentário para firestore na coleção de comentários desta postagem
     FirebaseFirestore.instance
         .collection("Pets")
         .doc(widget.postId)
@@ -125,7 +124,7 @@ class _WallPostState extends State<WallPost> {
     });
   }
 
-  // mostrar uma caixa de diálogo para adicionar comentários
+  // Mostrar diálogo para adicionar comentários
   void showCommentDialog() {
     showDialog(
       context: context,
@@ -136,29 +135,20 @@ class _WallPostState extends State<WallPost> {
           decoration: InputDecoration(hintText: "Escreva um comentário.."),
         ),
         actions: [
-          // botão cancelar
+          // Botão Cancelar
           TextButton(
             onPressed: () {
-              // caixa
               Navigator.pop(context);
-
-              //limpar controlador
-              _commentTextController.clear();
+              _commentTextController.clear(); // Limpa o controlador
             },
             child: Text("Cancelar"),
           ),
-
-          // botão postar
+          // Botão Postar
           TextButton(
             onPressed: () {
-              // adicionar comentário
               addComment(_commentTextController.text);
-
-              // caixa
               Navigator.pop(context);
-
-              // limpar controlador
-              _commentTextController.clear();
+              _commentTextController.clear(); // Limpa o controlador
             },
             child: Text("Postar"),
           ),
@@ -167,26 +157,23 @@ class _WallPostState extends State<WallPost> {
     );
   }
 
-  // delete a postagem
+  // Excluir a postagem
   void deletePost() {
-    // mostrar uma caixa de diálogo pedindo confirmação antes de excluir a postagem
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text("Deletar Postagem"),
         content: const Text("Tem certeza de que deseja excluir esta postagem?"),
         actions: [
-          // BOTÃO CANCELAR
+          // Botão Cancelar
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text("Cancelar"),
           ),
-
-          // BOTÃO EXCLUIR
+          // Botão Excluir
           TextButton(
             onPressed: () async {
-              // exclua os comentários do firestore primeiro
-              //( se você apenas excluir a postagem, os comentários ainda serão armazenados no firestore )
+              // Exclui os comentários da postagem
               final commentDocs = await FirebaseFirestore.instance
                   .collection("User Posts")
                   .doc(widget.postId)
@@ -202,7 +189,7 @@ class _WallPostState extends State<WallPost> {
                     .delete();
               }
 
-              // então exclua a postagem
+              // Exclui a postagem
               FirebaseFirestore.instance
                   .collection("User Posts")
                   .doc(widget.postId)
@@ -211,8 +198,7 @@ class _WallPostState extends State<WallPost> {
                   .catchError((error) =>
                       print("não foi possível excluir a postagem: $error"));
 
-              // dispensar o diálogo
-              Navigator.pop(context);
+              Navigator.pop(context); // Fecha o diálogo
             },
             child: const Text("Deletar"),
           ),
@@ -248,21 +234,21 @@ class _WallPostState extends State<WallPost> {
           // Exibir imagem escolhida
           if (_imageFile != null) Image.file(_imageFile!),
 
-          // parede de postagem
+          // Estrutura da postagem
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // grupo de texto (mensagem + e-mail do usuário)
+              // Grupo de texto (mensagem + e-mail do usuário)
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // mensagem
+                  // Mensagem da postagem
                   Text(widget.message),
 
                   const SizedBox(height: 5),
 
-                  // usuario
+                  // Informações do usuário
                   Row(
                     children: [
                       Text(
@@ -281,8 +267,7 @@ class _WallPostState extends State<WallPost> {
                   ),
                 ],
               ),
-
-              // botão excluir
+              // Botão excluir (apenas se o usuário for o autor da postagem)
               if (widget.user == currentUser.email)
                 DeleteButton(onTap: deletePost),
             ],
@@ -290,44 +275,70 @@ class _WallPostState extends State<WallPost> {
 
           const SizedBox(width: 20),
 
-          // botões
+          // Botões de interação
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Curtir
+              // Botão curtir
               Column(
                 children: [
-                  // botão curtir
                   LikeButton(
                     isLiked: isLiked,
                     onTap: toggleLike,
                   ),
-
                   const SizedBox(height: 5),
-
-                  // contar curtida
+                  // Contagem de curtidas
                   Text(
                     widget.likes.length.toString(),
                     style: const TextStyle(color: Colors.grey),
                   ),
                 ],
               ),
-
               const SizedBox(width: 10),
-
-              // COMENTE
+              // Botão comentar
               Column(
                 children: [
-                  // botão de comentários
                   CommentButton(onTap: showCommentDialog),
-
                   const SizedBox(height: 5),
+                  // Contagem de comentários (por enquanto sempre mostra 0)
+                  Text('0', style: const TextStyle(color: Colors.grey)),
+                ],
+              ),
+              const SizedBox(width: 10),
+              // Botão de chat
+              Column(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.chat, color: Colors.blue),
+                    onPressed: () async {
+                      // Pegar o documento de postagem para obter o email do usuário que postou
+                      final postDoc = await FirebaseFirestore.instance
+                          .collection('User Posts')
+                          .doc(widget.postId)
+                          .get();
 
-                  // Contagem de comentários
-                  Text(
-                    '0',
-                    style: const TextStyle(color: Colors.grey),
+                      // Verifica se o documento existe e navega para a tela de chat
+                      if (postDoc.exists && postDoc.data() != null) {
+                        final postUserEmail = postDoc.data()!['UserEmail']
+                            as String; // Acesse o email do usuário aqui
+
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ChatScreen(
+                              chatUserId: widget.postId,
+                              chatUserEmail: postUserEmail,
+                            ),
+                          ),
+                        );
+                      } else {
+                        print(
+                            'Erro: o documento da postagem não foi encontrado.');
+                      }
+                    },
                   ),
+                  const SizedBox(height: 5),
+                  const Text('Chat', style: TextStyle(color: Colors.grey)),
                 ],
               ),
             ],
@@ -335,7 +346,7 @@ class _WallPostState extends State<WallPost> {
 
           const SizedBox(height: 20),
 
-          // comentários abaixo da postagem
+          // StreamBuilder para escutar comentários em tempo real
           StreamBuilder<QuerySnapshot>(
             stream: FirebaseFirestore.instance
                 .collection("Pets")
@@ -344,21 +355,19 @@ class _WallPostState extends State<WallPost> {
                 .orderBy("CommentTime", descending: true)
                 .snapshots(),
             builder: (context, snapshot) {
-              //mostrar o círculo de carregamento se ainda não houver dados
               if (!snapshot.hasData) {
                 return const Center(
                   child: CircularProgressIndicator(),
                 );
               }
 
+              // Lista de comentários
               return ListView(
-                shrinkWrap: true, //para listas aninhadas
+                shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 children: snapshot.data!.docs.map((doc) {
-                  // receba o comentário
                   final commentData = doc.data() as Map<String, dynamic>;
 
-                  // devolva o comentário
                   return Comment(
                     text: commentData["CommentText"],
                     user: commentData["CommentedBy"],
@@ -367,7 +376,7 @@ class _WallPostState extends State<WallPost> {
                 }).toList(),
               );
             },
-          )
+          ),
         ],
       ),
     );
