@@ -4,6 +4,7 @@ import 'package:flutter_application_1/auth/auth_service.dart';
 import 'package:flutter_application_1/componentes/button.dart';
 import 'package:flutter_application_1/componentes/text_field.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class LoginPage extends StatefulWidget {
   final Function()? onTap;
@@ -72,6 +73,31 @@ class _LoginPageState extends State<LoginPage> {
     Navigator.pop(context);
 
     if (userCredential != null) {
+      final user = userCredential.user;
+
+      // Verifica se o usuário já existe no Firestore
+      final userDoc = await FirebaseFirestore.instance
+          .collection('Users')
+          .doc(user!.uid)
+          .get();
+
+      if (!userDoc.exists) {
+        // Adiciona o usuário na coleção 'Users'
+        await FirebaseFirestore.instance.collection('Users').doc(user.uid).set({
+          'username': user.displayName ?? '',
+          'email': user.email,
+          // outros campos que você deseja adicionar
+        });
+
+        // Adiciona também na coleção 'User Posts' se necessário
+        await FirebaseFirestore.instance
+            .collection('User Posts')
+            .doc(user.uid)
+            .set({
+          'UserEmail': user.email,
+          // outros campos que você deseja adicionar
+        });
+      }
       // Redirecionar para a pagina inicial apos o login bem-sucedido
       Navigator.pushReplacementNamed(context, '/home_page');
     } else {

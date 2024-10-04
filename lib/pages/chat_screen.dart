@@ -1,8 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'message.dart';
-import 'package:intl/intl.dart'; // Para formatar a data
 
 class ChatScreen extends StatefulWidget {
   final String chatUserId;
@@ -20,7 +18,6 @@ class ChatScreen extends StatefulWidget {
 
 class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _messageController = TextEditingController();
-  final FirebaseAuth _auth = FirebaseAuth.instance;
   String? username; // Para armazenar o nome de usuário
 
   @override
@@ -32,7 +29,6 @@ class _ChatScreenState extends State<ChatScreen> {
   // Função para buscar o nome de usuário na coleção 'Users'
   Future<void> _fetchUsername() async {
     try {
-      // Buscando o UserEmail correspondente ao chatUserId na coleção 'User Posts'
       final userPostDoc = await FirebaseFirestore.instance
           .collection('User Posts')
           .where('UserEmail', isEqualTo: widget.chatUserEmail)
@@ -40,10 +36,9 @@ class _ChatScreenState extends State<ChatScreen> {
           .get();
 
       if (userPostDoc.docs.isNotEmpty) {
-        // O UserEmail foi encontrado, agora buscar o username na coleção 'Users'
         DocumentSnapshot userDoc = await FirebaseFirestore.instance
             .collection('Users')
-            .doc(userPostDoc.docs[0].id) // Supondo que o id aqui é o userId
+            .doc(userPostDoc.docs[0].id)
             .get();
 
         if (userDoc.exists) {
@@ -61,29 +56,25 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
-  void _sendMessage() {
-    final user = _auth.currentUser;
-    if (user != null && _messageController.text.isNotEmpty) {
-      FirebaseFirestore.instance.collection('Messages').add({
-        'senderId': user.uid,
-        'receiverId': widget.chatUserId,
-        'text': _messageController.text,
-        'timestamp': Timestamp.now(),
-      }).then((value) {
-        print('Mensagem enviada: ${_messageController.text}');
-      }).catchError((erro) {
-        print('Erro ao enviar mensagem: $erro');
-      });
+  Future<void> _sendMessage() async {
+    if (_messageController.text.isNotEmpty) {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        await FirebaseFirestore.instance.collection('Messages').add({
+          'senderEmail': user.email,
+          'receiverEmail': widget.chatUserEmail,
+          'message': _messageController.text,
+          'timestamp': Timestamp.now(),
+        });
 
-      _messageController.clear();
-    } else {
-      print('Usuário não autenticado ou mensagem vazia.');
+        _messageController.clear(); // Limpa o campo de entrada após enviar
+      }
     }
   }
 
   void editMessage(String messageId, String newText) {
     FirebaseFirestore.instance.collection('Messages').doc(messageId).update({
-      'text': newText,
+      'message': newText,
     });
   }
 
@@ -133,13 +124,13 @@ class _ChatScreenState extends State<ChatScreen> {
           content: Text("Tem certeza que deseja excluir esta mensagem?"),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context), // Fechar o diálogo
+              onPressed: () => Navigator.pop(context),
               child: Text("Cancelar"),
             ),
             TextButton(
               onPressed: () {
                 deleteMessage(messageId);
-                Navigator.pop(context); // Fechar o diálogo
+                Navigator.pop(context);
               },
               child: Text("Excluir"),
             ),
@@ -151,85 +142,51 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final user = _auth.currentUser;
-
-    // Verificando se o username foi recuperado
-    if (user == null) {
-      print('Erro: usuário não autenticado.');
-      return Scaffold(
-        appBar: AppBar(
-          title: Text("Erro"),
-        ),
-        body: Center(
-          child: Text("Erro: usuário não autenticado."),
-        ),
-      );
-    }
-
-    if (username == null) {
-      // Se o username ainda não foi carregado, mostra uma mensagem de loading
-      return Scaffold(
-        appBar: AppBar(
-          title: Text("Carregando..."),
-        ),
-        body: Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
-    }
-
     return Scaffold(
-      appBar: AppBar(
-        title: Text("Chat com $username"), // Exibe o username
-      ),
+      appBar: AppBar(title: Text('Chat com ${widget.chatUserEmail}')),
       body: Column(
         children: [
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
                   .collection('Messages')
-                  .where('senderId', whereIn: [user.uid, widget.chatUserId])
-                  .where('receiverId', whereIn: [user.uid, widget.chatUserId])
-                  .orderBy('timestamp')
+                  .where('senderEmail',
+                      isEqualTo: FirebaseAuth.instance.currentUser!.email)
+                  .where('receiverEmail', isEqualTo: widget.chatUserEmail)
+                  .orderBy('timestamp', descending: true)
                   .snapshots(),
               builder: (context, snapshot) {
-                if (snapshot.hasError) {
-                  return Center(child: Text('Erro: ${snapshot.error}'));
+                if (!snapshot.hasData) {
+                  return Center(child: CircularProgressIndicator());
                 }
-                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  return Center(child: Text('Nenhuma mensagem'));
-                }
+                final messages = snapshot.data!.docs;
 
-                final messages = snapshot.data!.docs.map((doc) {
-                  final message = Message.fromMap(
-                      doc.data() as Map<String, dynamic>, doc.id);
-
-                  String formattedTime =
-                      DateFormat('HH:mm').format(message.timestamp.toDate());
-                  return ListTile(
-                    title: Text(message.text),
-                    subtitle: Text("Enviada às $formattedTime"),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          icon: Icon(Icons.edit),
-                          onPressed: () {
-                            _showEditDialog(message.id, message.text);
-                          },
-                        ),
-                        IconButton(
-                          icon: Icon(Icons.delete),
-                          onPressed: () {
-                            _confirmDelete(doc.id);
-                          },
-                        ),
-                      ],
-                    ),
-                  );
-                }).toList();
-
-                return ListView(children: messages);
+                return ListView.builder(
+                  reverse: true,
+                  itemCount: messages.length,
+                  itemBuilder: (context, index) {
+                    final message =
+                        messages[index].data() as Map<String, dynamic>;
+                    print('Mensagem: ${message['message']}');
+                    print('Email do Remetente: ${message['senderEmail']}');
+                    return ListTile(
+                      title:
+                          Text(message['message'] ?? 'Mensagem não disponível'),
+                      subtitle: Text(
+                          message['senderEmail'] ?? 'Email não disponível'),
+                      onLongPress: () {
+                        _showEditDialog(
+                            messages[index].id, message['message'] ?? '');
+                      },
+                      trailing: IconButton(
+                        icon: Icon(Icons.delete),
+                        onPressed: () {
+                          _confirmDelete(messages[index].id);
+                        },
+                      ),
+                    );
+                  },
+                );
               },
             ),
           ),
@@ -241,12 +198,13 @@ class _ChatScreenState extends State<ChatScreen> {
                   child: TextField(
                     controller: _messageController,
                     decoration:
-                        InputDecoration(labelText: "Digite uma mensagem"),
+                        InputDecoration(labelText: 'Digite sua mensagem...'),
                   ),
                 ),
                 IconButton(
                   icon: Icon(Icons.send),
-                  onPressed: _sendMessage,
+                  onPressed:
+                      _sendMessage, // Corrigido para chamar o método certo
                 ),
               ],
             ),

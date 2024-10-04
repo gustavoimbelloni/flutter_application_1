@@ -1,12 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/componentes/my_list_tile.dart';
 import 'package:flutter_application_1/pages/registerpet_page.dart';
+import 'package:flutter_application_1/pages/ajudapage.dart';
+import 'package:flutter_application_1/pages/messagepage.dart';
 
 class MyDrawer extends StatelessWidget {
   final void Function()? onProfileTap;
   final void Function()? onSignOut;
-  const MyDrawer(
-      {super.key, required this.onProfileTap, required this.onSignOut});
+
+  const MyDrawer({
+    super.key,
+    required this.onProfileTap,
+    required this.onSignOut,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -15,9 +21,9 @@ class MyDrawer extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
+          // Cabeçalho e opções de menu
           Column(
             children: [
-              // cabeçalho
               const DrawerHeader(
                 child: Icon(
                   Icons.person,
@@ -26,21 +32,21 @@ class MyDrawer extends StatelessWidget {
                 ),
               ),
 
-              // título da lista inicial
+              // Opção Home
               MyListTile(
                 icon: Icons.home,
                 text: 'H O M E',
                 onTap: () => Navigator.pop(context),
               ),
 
-              // bloco da lista de perfis
+              // Opção Profile
               MyListTile(
                 icon: Icons.person,
                 text: 'P R O F I L E',
                 onTap: onProfileTap,
               ),
 
-              // bloco da lista de perfis
+              // Opção Cadastro de Pet
               MyListTile(
                 icon: Icons.pets,
                 text: 'C A D A S T R O - P E T',
@@ -51,10 +57,34 @@ class MyDrawer extends StatelessWidget {
                   );
                 },
               ),
+
+              // Opção Mensagens
+              MyListTile(
+                icon: Icons.message,
+                text: 'M E N S A G E N S',
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => MessagePage()),
+                  );
+                },
+              ),
+
+              // Opção Ajuda
+              MyListTile(
+                icon: Icons.help,
+                text: 'A J U D A',
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => AjudaPage()),
+                  );
+                },
+              ),
             ],
           ),
 
-          // bloco da lista de logout
+          // Logout
           Padding(
             padding: const EdgeInsets.only(bottom: 25.0),
             child: MyListTile(
