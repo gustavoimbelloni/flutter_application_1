@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_application_1/componentes/my_list_tile.dart';
 import 'package:flutter_application_1/pages/registerpet_page.dart';
 import 'package:flutter_application_1/pages/ajudapage.dart';
-import 'package:flutter_application_1/pages/messagepage.dart';
+import 'package:flutter_application_1/pages/chat_list_page.dart'; // Import da ChatListPage
 
 class MyDrawer extends StatelessWidget {
   final void Function()? onProfileTap;
@@ -21,7 +21,6 @@ class MyDrawer extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // Cabeçalho e opções de menu
           Column(
             children: [
               const DrawerHeader(
@@ -65,7 +64,7 @@ class MyDrawer extends StatelessWidget {
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => MessagePage()),
+                    MaterialPageRoute(builder: (context) => ChatListPage()),
                   );
                 },
               ),
