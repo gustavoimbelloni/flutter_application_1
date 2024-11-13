@@ -14,12 +14,17 @@ Future<String?> getCityAndStateFromCoordinates(
   final url =
       'https://nominatim.openstreetmap.org/reverse?format=json&lat=$latitude&lon=$longitude&zoom=10&addressdetails=1';
 
-  final response = await http.get(Uri.parse(url));
+  final response = await http.get(
+    Uri.parse(url),
+    headers: {
+      'User-Agent': 'MyApp/1.0 (myemail@example.com)' // Adicione um User-Agent
+    },
+  );
+
   if (response.statusCode == 200) {
     final data = json.decode(response.body);
     print('Geocoding response: $data'); // Log de depuração
 
-    // Verifique o que está retornando na resposta para depuração
     final address = data['address'];
     if (address != null) {
       final city = address['city'];
@@ -57,6 +62,7 @@ class _AddPetScreenState extends State<AddPetScreen> {
   final _descriptionController = TextEditingController();
   File? _imageFile;
   Position? _currentPosition;
+  String? _cityAndState; // Adicionando variável para armazenar cidade e estado
 
   final ImagePicker _picker = ImagePicker();
 
@@ -97,6 +103,13 @@ class _AddPetScreenState extends State<AddPetScreen> {
     setState(() {
       _currentPosition = position;
     });
+
+    // Obter a cidade e estado após obter a posição
+    _cityAndState = await getCityAndStateFromCoordinates(
+      _currentPosition!.latitude,
+      _currentPosition!.longitude,
+    );
+    print('City and State: $_cityAndState'); // Log de depuração
   }
 
   Future<void> _submitForm() async {
@@ -107,7 +120,6 @@ class _AddPetScreenState extends State<AddPetScreen> {
       if (user != null) {
         final petId = FirebaseFirestore.instance.collection('Pets').doc().id;
         String imageUrl = '';
-        String? cityAndState;
 
         if (_imageFile != null) {
           // Upload image to Firebase Storage
@@ -117,16 +129,9 @@ class _AddPetScreenState extends State<AddPetScreen> {
           imageUrl = await storageRef.getDownloadURL();
         }
 
-        // Obter o nome da cidade e estado a partir das coordenadas
-        cityAndState = await getCityAndStateFromCoordinates(
-          _currentPosition!.latitude,
-          _currentPosition!.longitude,
-        );
-        print('City and State: $cityAndState'); // Log de depuração
-
         final description = _descriptionController.text;
         final cityDescription =
-            cityAndState != null ? '\nCidade: $cityAndState' : '';
+            _cityAndState != null ? '\nCidade: $_cityAndState' : '';
 
         await FirebaseFirestore.instance.collection('Pets').doc(petId).set({
           'name': _nameController.text,
@@ -244,6 +249,9 @@ class _AddPetScreenState extends State<AddPetScreen> {
               if (_currentPosition != null)
                 Text(
                     'Localização obtida: ${_currentPosition!.latitude}, ${_currentPosition!.longitude}'),
+              if (_cityAndState != null) // Exibir cidade e estado
+                Text('Cidade e Estado: $_cityAndState',
+                    style: TextStyle(fontWeight: FontWeight.bold)),
               SizedBox(height: 10),
               ElevatedButton(
                 onPressed: _submitForm,
